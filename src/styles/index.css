@@ -1,0 +1,239 @@
+@import "tailwindcss";
+@import "@fontsource-variable/plus-jakarta-sans";
+
+/* Devices with a real pointer. Touch screens get explicit controls instead of hover. */
+@custom-variant hover-device (@media (hover: hover) and (pointer: fine));
+
+/*
+  Design tokens. Every colour, font, radius, shadow and easing on the site comes from here.
+
+  Base: soft white with neutral image wells. Three pastel tints (blush, powder, lilac)
+  are used only as section/hero backgrounds. Soft black for primary actions.
+  One accent: rose, for hearts, sale tags and active states.
+  Shape: cards 24px, images 18px, buttons / chips / inputs are pills.
+*/
+@theme {
+  --color-bg: #fdfcfc;
+  --color-soft: #f4f2f1;
+  --color-blush: #f6e7e2;
+  --color-powder: #e2e9f2;
+  --color-lilac: #ece7f2;
+  --color-ink: #17141a;
+  --color-ink-soft: #625d66;
+  --color-line: rgb(23 20 26 / 0.09);
+  --color-line-strong: rgb(23 20 26 / 0.18);
+  --color-rose: #c4426a;
+  --color-rose-soft: #f9e3e9;
+
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 24px;
+  --radius-media: 18px;
+
+  --shadow-float: 0 12px 32px -14px rgb(23 20 26 / 0.22);
+  --shadow-lift: 0 24px 48px -24px rgb(23 20 26 / 0.3);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    scroll-padding-top: 88px;
+  }
+
+  body {
+    @apply bg-bg font-sans text-ink antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  ::selection {
+    background: var(--color-rose-soft);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+  }
+
+  button,
+  [role="button"],
+  a,
+  label[for] {
+    cursor: pointer;
+  }
+
+  button {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  img {
+    -webkit-user-drag: none;
+  }
+
+  /* Native search clear button clashes with the design; Escape / Cancel clear instead. */
+  input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+  }
+
+  p,
+  li {
+    text-wrap: pretty;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    letter-spacing: -0.025em;
+  }
+}
+
+@layer components {
+  /* Page gutter + max width shared by every section, so edges line up down the page. */
+  .shell {
+    @apply mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-10;
+  }
+
+  /* Section title. */
+  .title {
+    @apply text-[26px] leading-[1.1] font-bold sm:text-[32px] lg:text-[40px];
+    letter-spacing: -0.03em;
+  }
+
+  /* Text link with a hairline that draws in from the left on hover. */
+  .link-line {
+    position: relative;
+    padding-block: 2px;
+  }
+  .link-line::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 300ms var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .link-line:hover::after {
+      transform: scaleX(1);
+      transform-origin: left;
+    }
+  }
+
+  /* Pressable: a small scale-down on press so taps feel physical. */
+  .press {
+    transition: transform 160ms var(--ease-out);
+  }
+  .press:active {
+    transform: scale(0.96);
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Motion primitives. Every keyframe below is skipped under prefers-reduced-motion. */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.28);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes bump {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .anim-fade-up {
+    animation: fade-up 650ms var(--ease-out) both;
+    animation-delay: var(--delay, 0ms);
+  }
+  .anim-fade-in {
+    animation: fade-in 500ms ease both;
+    animation-delay: var(--delay, 0ms);
+  }
+  .anim-pop {
+    animation: pop 420ms var(--ease-out);
+  }
+  .anim-bump {
+    animation: bump 450ms var(--ease-out);
+  }
+
+  /* Scroll reveal: elements start slightly lowered and fade up once in view. */
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 700ms var(--ease-out),
+      transform 900ms var(--ease-out);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+  [data-reveal="in"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Hero autoplay bar fills over the slide duration. */
+  .hero-progress {
+    animation: progress var(--duration) linear forwards;
+  }
+  .hero-progress[data-paused="true"] {
+    animation-play-state: paused;
+  }
+}
+
+.hero-progress {
+  transform-origin: left;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
