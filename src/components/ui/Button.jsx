@@ -1,34 +1,33 @@
+import { Link } from 'react-router'
 import { cn } from '../../lib/cn'
 
 const variants = {
-  solid: 'bg-ink text-bg hover:bg-ink/85',
-  white: 'bg-bg text-ink shadow-float hover:bg-white',
-  outline: 'border border-line-strong text-ink hover:border-ink',
-  soft: 'bg-soft text-ink hover:bg-line',
+  primary: 'bg-maroon text-ivory hover:bg-maroon-deep',
+  gold: 'bg-gold text-white hover:bg-[#9a7239]',
+  outline: 'border border-maroon text-maroon hover:bg-maroon hover:text-ivory',
+  ghost: 'border border-line-strong text-ink hover:border-ink',
+  light: 'bg-ivory text-maroon hover:bg-white',
 }
 
 const sizes = {
-  sm: 'h-10 px-5 text-[13px]',
-  md: 'h-12 px-6 text-[14px]',
-  lg: 'h-13 px-8 text-[15px]',
+  sm: 'h-10 px-5 text-[12px]',
+  md: 'h-12 px-7 text-[13px]',
+  lg: 'h-14 px-9 text-[13px]',
 }
 
-/** Pill button. Renders an <a> when given href. */
-export function Button({ as, href, variant = 'solid', size = 'md', className, children, ...props }) {
-  const Tag = as ?? (href ? 'a' : 'button')
-  return (
-    <Tag
-      href={href}
-      className={cn(
-        'press inline-flex items-center justify-center gap-2 rounded-full font-semibold whitespace-nowrap',
-        'transition-[background-color,border-color,color,transform] duration-200',
-        variants[variant],
-        sizes[size],
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </Tag>
+/**
+ * Rectangular button with uppercase label. Renders a router <Link> when given `to`,
+ * an <a> for `href`, otherwise a <button>.
+ */
+export function Button({ to, href, variant = 'primary', size = 'md', className, children, ...props }) {
+  const classes = cn(
+    'press caps inline-flex items-center justify-center gap-2.5 rounded-soft whitespace-nowrap',
+    'transition-[background-color,border-color,color,transform,opacity] duration-200 disabled:pointer-events-none disabled:opacity-50',
+    variants[variant],
+    sizes[size],
+    className,
   )
+  if (to) return <Link to={to} className={classes} {...props}>{children}</Link>
+  if (href) return <a href={href} className={classes} {...props}>{children}</a>
+  return <button type="button" className={classes} {...props}>{children}</button>
 }

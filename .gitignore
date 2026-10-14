@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Original client photos (optimised copies live in public/media/products)
+src/assets/image/

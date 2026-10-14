@@ -3,27 +3,23 @@ import { imageSet } from '../../data/media'
 import { cn } from '../../lib/cn'
 
 /**
- * Responsive image backed by the media manifest.
- * - Fills its parent by default (`fill`), or reserves its own aspect ratio.
- * - Shows the photo's average tone until the file loads, then fades in.
- * - Cut-out shots on pure white are multiplied onto the page tone so they sit in the palette.
- * - `position` sets object-position, for crops that should favour the face or the hem.
+ * Product photo backed by the media manifest (all photos are 4:5).
+ * - Fills its parent; set the box size / aspect with className.
+ * - Shows the photo's average colour until the file loads, then fades in.
+ * - `position` sets object-position, e.g. '50% 20%' to favour the face.
  */
-export function Img({ id, alt = '', sizes = '100vw', priority = false, fill = true, position, className, imgClassName }) {
+export function Img({ id, alt = '', sizes = '100vw', priority = false, position, className, imgClassName }) {
   const [loaded, setLoaded] = useState(false)
   const img = imageSet(id)
 
   return (
-    <div
-      className={cn('relative overflow-hidden', className)}
-      style={{ backgroundColor: img.knockout ? 'var(--color-soft)' : img.tone, aspectRatio: fill ? undefined : `${img.w} / ${img.h}` }}
-    >
+    <div className={cn('relative overflow-hidden', className)} style={{ backgroundColor: img.tone }}>
       <img
         src={img.src}
-        srcSet={`${img.srcSm} 640w, ${img.src} ${img.w}w`}
+        srcSet={`${img.srcSm} 480w, ${img.src} 1000w`}
         sizes={sizes}
-        width={img.w}
-        height={img.h}
+        width={1000}
+        height={1250}
         alt={alt}
         loading={priority ? 'eager' : 'lazy'}
         fetchPriority={priority ? 'high' : undefined}
@@ -37,7 +33,6 @@ export function Img({ id, alt = '', sizes = '100vw', priority = false, fill = tr
         className={cn(
           'absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ease-out',
           loaded ? 'opacity-100' : 'opacity-0',
-          img.knockout && 'mix-blend-multiply',
           imgClassName,
         )}
       />

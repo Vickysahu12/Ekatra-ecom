@@ -1,28 +1,41 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer } from 'react'
 import { getProductSync } from '../../services/catalog'
+import { site } from '../../config/site'
 
-// Cart lines are { productId, size, qty }. Product details are looked up on read,
-// so prices always come from the catalogue (and later, the API), never from storage.
+// Cart lines are { productId, variant, qty }. Product details and prices are looked up
+// on read, so prices always come from the catalogue (later, the API), never from storage.
+// `variant` is a label: 'Unstitched blouse', 'Stitched blouse: 36', or a suit size like 'M'.
 
-const STORAGE_KEY = 'ekatra.cart.v2'
+const STORAGE_KEY = 'ekatra.cart.v3'
 const CartContext = createContext(null)
+
+export const lineKey = (l) => `${l.productId}|${l.variant}`
+export const isStitched = (variant) => variant?.startsWith('Stitched')
+export const unitPrice = (product, variant) => product.price + (isStitched(variant) ? site.stitchingFee : 0)
 
 function reducer(state, action) {
   switch (action.type) {
     case 'add': {
-      const { productId, size, qty } = action
-      const existing = state.lines.find((l) => l.productId === productId && l.size === size)
+      const key = lineKey(action)
+      const existing = state.lines.find((l) => lineKey(l) === key)
       const lines = existing
-        ? state.lines.map((l) => (l === existing ? { ...l, qty: l.qty + qty } : l))
-        : [...state.lines, { productId, size, qty }]
+        ? state.lines.map((l) => (l === existing ? { ...l, qty: Math.min(10, l.qty + action.qty) } : l))
+        : [...state.lines, { productId: action.productId, variant: action.variant, qty: action.qty }]
       return { ...state, lines, addedAt: Date.now() }
     }
-    case 'setQty': {
-      const lines = state.lines
-        .map((l, i) => (i === action.index ? { ...l, qty: action.qty } : l))
-        .filter((l) => l.qty > 0)
-      return { ...state, lines }
-    }
+    case 'setQty':
+      return {
+        ...state,
+        lines: state.lines
+          .map((l) => (lineKey(l) === action.key ? { ...l, qty: Math.min(10, action.qty) } : l))
+          .filter((l) => l.qty > 0),
+      }
+    case 'remove':
+      return { ...state, lines: state.lines.filter((l) => lineKey(l) !== action.key) }
+    case 'coupon':
+      return { ...state, coupon: action.code }
+    case 'clear':
+      return { ...state, lines: [], coupon: null }
     case 'open':
       return { ...state, open: action.open }
     default:
@@ -30,37 +43,87 @@ function reducer(state, action) {
   }
 }
 
-function loadLines() {
+function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY))
-    return Array.isArray(saved) ? saved.filter((l) => getProductSync(l.productId)) : []
+    return {
+      lines: Array.isArray(saved?.lines) ? saved.lines.filter((l) => getProductSync(l.productId)) : [],
+      coupon: saved?.coupon ?? null,
+    }
   } catch {
-    return []
+    return { lines: [], coupon: null }
   }
 }
 
+/** Validate a coupon against a subtotal. Returns { ok, coupon?, error? }. */
+export function checkCoupon(code, subtotal) {
+  const key = code.trim().toUpperCase()
+  const coupon = site.coupons[key]
+  if (!coupon) return { ok: false, error: 'This code is not valid.' }
+  if (coupon.min && subtotal < coupon.min) {
+    return { ok: false, error: `Add items worth ₹${(coupon.min - subtotal).toLocaleString('en-IN')} more to use ${key}.` }
+  }
+  return { ok: true, code: key, coupon }
+}
+
 export function CartProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, undefined, () => ({ lines: loadLines(), open: false, addedAt: 0 }))
+  const [state, dispatch] = useReducer(reducer, undefined, () => ({ ...load(), open: false, addedAt: 0 }))
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.lines))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ lines: state.lines, coupon: state.coupon }))
     } catch {
-      // Storage can be unavailable (private mode). The cart still works for the session.
+      // Storage unavailable (private mode). The cart still works for this session.
     }
-  }, [state.lines])
+  }, [state.lines, state.coupon])
 
-  const add = useCallback((productId, size, qty = 1) => dispatch({ type: 'add', productId, size, qty }), [])
-  const setQty = useCallback((index, qty) => dispatch({ type: 'setQty', index, qty }), [])
+  const add = useCallback((productId, variant, qty = 1) => dispatch({ type: 'add', productId, variant, qty }), [])
+  const setQty = useCallback((key, qty) => dispatch({ type: 'setQty', key, qty }), [])
+  const remove = useCallback((key) => dispatch({ type: 'remove', key }), [])
+  const applyCoupon = useCallback((code) => dispatch({ type: 'coupon', code }), [])
+  const clear = useCallback(() => dispatch({ type: 'clear' }), [])
   const setOpen = useCallback((open) => dispatch({ type: 'open', open }), [])
 
   const value = useMemo(() => {
-    const items = state.lines.map((line) => ({ ...line, product: getProductSync(line.productId) }))
+    const items = state.lines.map((line) => {
+      const product = getProductSync(line.productId)
+      const unit = unitPrice(product, line.variant)
+      const mrp = (product.compareAt ?? product.price) + (isStitched(line.variant) ? site.stitchingFee : 0)
+      return { ...line, key: lineKey(line), product, unit, lineTotal: unit * line.qty, lineMrp: mrp * line.qty }
+    })
     const count = items.reduce((n, l) => n + l.qty, 0)
-    const subtotal = items.reduce((sum, l) => sum + l.qty * l.product.price, 0)
-    // addedAt changes on every add, so badges can replay a small bump animation.
-    return { items, count, subtotal, open: state.open, addedAt: state.addedAt, add, setQty, setOpen }
-  }, [state, add, setQty, setOpen])
+    const subtotal = items.reduce((s, l) => s + l.lineTotal, 0)
+    const mrpTotal = items.reduce((s, l) => s + l.lineMrp, 0)
+
+    // Re-check the coupon whenever the cart changes; drop it silently if it no longer applies.
+    const check = state.coupon ? checkCoupon(state.coupon, subtotal) : null
+    const coupon = check?.ok ? { code: check.code, ...check.coupon } : null
+    const couponDiscount = coupon
+      ? Math.round(coupon.type === 'percent' ? (subtotal * coupon.value) / 100 : coupon.value)
+      : 0
+    const shipping = count === 0 || subtotal >= site.freeShippingOver ? 0 : site.shippingFee
+    const total = Math.max(0, subtotal - couponDiscount + shipping)
+
+    return {
+      items,
+      count,
+      subtotal,
+      mrpTotal,
+      savings: mrpTotal - subtotal,
+      coupon,
+      couponDiscount,
+      shipping,
+      total,
+      open: state.open,
+      addedAt: state.addedAt,
+      add,
+      setQty,
+      remove,
+      applyCoupon,
+      clear,
+      setOpen,
+    }
+  }, [state, add, setQty, remove, applyCoupon, clear, setOpen])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }

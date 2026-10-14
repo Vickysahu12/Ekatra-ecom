@@ -18,7 +18,6 @@ function loadIds() {
 
 export function WishlistProvider({ children }) {
   const [ids, setIds] = useState(loadIds)
-  const [open, setOpen] = useState(false)
 
   useEffect(() => {
     try {
@@ -40,6 +39,9 @@ export function WishlistProvider({ children }) {
     return added
   }, [])
 
+  const add = useCallback((id) => setIds((prev) => (prev.includes(id) ? prev : [id, ...prev])), [])
+  const remove = useCallback((id) => setIds((prev) => prev.filter((x) => x !== id)), [])
+
   const value = useMemo(
     () => ({
       ids,
@@ -47,10 +49,10 @@ export function WishlistProvider({ children }) {
       has: (id) => ids.includes(id),
       items: ids.map(getProductSync).filter(Boolean),
       toggle,
-      open,
-      setOpen,
+      add,
+      remove,
     }),
-    [ids, toggle, open],
+    [ids, toggle, add, remove],
   )
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>

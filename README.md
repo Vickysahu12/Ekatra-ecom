@@ -1,6 +1,8 @@
-# Ekatra storefront
+# Ekatra storefront (demo)
 
-Landing page for the Ekatra denim store. Vite + React 19 + Tailwind CSS v4.
+Frontend for Ekatra, a handwoven saree and suit-set brand. Vite + React 19 + Tailwind CSS v4 + React Router 7.
+Everything works end to end in the browser: browse, filter, product page, bag, coupons, checkout, order confirmation and order history.
+There is no backend yet; data lives in `src/data` and orders / cart / wishlist are saved in localStorage.
 
 ```bash
 npm install
@@ -9,61 +11,47 @@ npm run build    # production build in dist/
 npm run lint
 ```
 
+## Pages
+
+| Route | Page |
+| --- | --- |
+| `/` | Home: hero slider, occasions, curated collections, artisan story, promos, complete-the-look, styling guide, offers, testimonials |
+| `/shop`, `/shop/sarees`, `/shop/suit-sets` | Listing with filters (fabric, occasion, colour, price, sale), sort, search (`?q=`), load more. Filters live in the URL |
+| `/product/:slug` | Gallery with zoom, colour siblings, blouse / size options, add to bag, buy now, pincode check, details, reviews, related |
+| `/cart` | Bag with quantity, move to wishlist, undo remove, coupons, price breakdown |
+| `/checkout` | Address (validated, pincode autofill) then payment (UPI, card, net banking, COD) |
+| `/order/:id` | Confirmation |
+| `/wishlist`, `/account` | Saved pieces, order history with tracking |
+| `/about`, `/help` | Brand story, FAQs and contact |
+
+Demo coupons: `FESTIVE10`, `WELCOME15` (min ₹2,999), `FLAT500` (min ₹3,999).
+
 ## Structure
 
 ```
 src/
-  app/            App shell (App.jsx) and Providers.jsx (cart, wishlist, toast, quick view, search)
-  config/site.js  Brand name, nav, announcements, footer links, currency
-  data/           Placeholder content: products, page copy, media + cut-out manifests
-  services/       Data access (catalog, search, newsletter). Components only call these
-  features/       Stateful features: cart, wishlist, quick view, search, toast, product card, lightbox
-  sections/       One file per landing-page section, in page order
-  components/
-    layout/       Header, mobile menu, mobile tab bar, announcement bar, newsletter, footer
-    ui/           Primitives: Img, Button, Icon, SectionHeading, SideDrawer
-  hooks/          useReveal, useAsync, useOverlay (Esc + scroll lock + focus), useMediaQuery
-  lib/            Price formatting, discount, class-name helper
+  app/            Router, root layout, providers
+  pages/          One file per route
+  sections/home/  Home page sections, in page order
+  features/       cart, checkout, product, shop (filters), search, wishlist, toast
+  components/     layout (header, footer, menu) and ui primitives (Button, Img, Icon, Modal, SideDrawer, Accordion...)
+  services/       catalog.js, orders.js, newsletter.js. Swap these for API calls when the backend exists
+  data/           products.js (41 products), content.js (page copy), media.js (image placeholders)
+  config/site.js  Brand name, nav, announcements, coupons, fees, footer
   styles/         Tailwind entry + design tokens
-public/media/looks/     Photos, look-01.webp ... look-40.webp (+ -sm variants)
-public/media/cutouts/   Background-removed models for the hero slider, fit finder, club card
+public/media/products/  p01-1.webp ... p41-2.webp (1000px) + -sm (480px), all 4:5
+src/assets/image/       Original client photos (not bundled)
 ```
 
-Page order: announcement bar, header, hero slider, category circles, trending now (filter chips),
-promo pair, fit finder, dress for the day, #ekatragirls lookbook (40 photos), reviews, perks,
-club signup, footer. On phones a floating tab bar gives Home, Shop, Search, Wishlist and Bag.
+## Adding or changing products
 
-## Connecting a backend
-
-`src/services/catalog.js` and `src/services/newsletter.js` currently read local data.
-Replace their bodies with API calls and keep the return shapes the same
-(see `src/data/products.js` for the product shape). The cart stores only
-`{ productId, size, qty }` and looks up prices from the catalogue, so it
-never trusts prices from the browser.
-
-## Swapping in the client's photos
-
-The 40 current photos are **temporary placeholders from Unsplash** (free licence).
-Some show third-party graphics on clothing. Replace all of them before launch:
-
-1. Export each photo as WebP at 1200px wide (`look-NN.webp`) and 640px wide (`look-NN-sm.webp`).
-2. Drop them into `public/media/looks/`, keeping the same names.
-3. Update `w`, `h` and `tone` (average colour, used while loading) in `src/data/media.js`.
-4. Adjust which photo goes where in `src/data/content.js` and `src/data/products.js`.
+1. Export two photos per product as 4:5 WebP into `public/media/products` (`pNN-1.webp` front, `pNN-2.webp` back / detail, plus `-sm` versions).
+2. Add an entry to `src/data/products.js` and its placeholder colour in `src/data/media.js`.
+3. Products with the same `family` show as colour options of each other.
 
 ## Design rules
 
-- Audience: women's denim. Soft, premium, app-like on phones.
-- Colours, font, radii, shadows and easing live only in `src/styles/index.css` (`@theme`).
-- Type: Plus Jakarta Sans throughout. Lowercase heavy wordmark.
-- Colour: soft white base, pastel tints (blush, powder, lilac) for panels, soft black for buttons,
-  rose as the single accent (hearts, sale, badges).
-- Shape: cards 24px (`rounded-card`), images 18px (`rounded-media`), buttons / chips / inputs are pills.
-- Motion: hero autoplay with progress, sliding chip indicators, heart pop, badge bump, quick-view
-  sheet, drawers, toast, fade-up on scroll. All of it respects `prefers-reduced-motion`.
-
-## Cut-outs (hero, fit finder, club card)
-
-These are generated from the studio photos with background removal (rembg, isnet model),
-then cropped tight and saved as transparent WebP. Redo them from the client's own studio
-shots; plain backgrounds give the cleanest edges. Update sizes in `src/data/cutouts.js`.
+- Colours, fonts, radius, shadows and easing live only in `src/styles/index.css` (`@theme`).
+- Palette: ivory base, maroon brand colour, antique gold accents. Cormorant Garamond for display, Jost for everything else.
+- One 4px radius (`rounded-soft`), uppercase tracked labels for buttons and nav, the gold diamond ornament under section titles.
+- Motion is small and purposeful (hover photo swap, heart pop, bag bump, button states, drawers, accordions, toasts) and respects `prefers-reduced-motion`.

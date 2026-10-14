@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Img } from '../../components/ui/Img'
+import { Icon } from '../../components/ui/Icon'
 
 // Small confirmation toast ("Added to bag"). One at a time, auto-dismisses,
 // timer pauses while hovered. Sits above the mobile tab bar.
@@ -32,7 +33,7 @@ export function ToastProvider({ children }) {
       {children}
       <div
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-0 bottom-[calc(88px+env(safe-area-inset-bottom))] z-50 flex justify-center px-4 lg:bottom-6"
+        className="pointer-events-none fixed inset-x-0 bottom-[calc(16px+env(safe-area-inset-bottom))] z-[60] flex justify-center px-4 lg:bottom-6"
       >
         <AnimatePresence>
           {toast && (
@@ -45,12 +46,12 @@ export function ToastProvider({ children }) {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.98, transition: { duration: 0.18 } }}
               transition={{ type: 'spring', duration: 0.45, bounce: 0.18 }}
-              className="pointer-events-auto flex w-full max-w-[380px] items-center gap-3 rounded-[20px] bg-ink p-2.5 pr-3 text-bg shadow-lift"
+              className="pointer-events-auto flex w-full max-w-[400px] items-center gap-3 rounded-soft bg-maroon-deep p-2.5 pr-3 text-ivory shadow-lift"
             >
-              {toast.image && <Img id={toast.image} alt="" sizes="48px" className="h-14 w-11 shrink-0 rounded-[12px]" />}
+              {toast.image && <Img id={toast.image} alt="" sizes="48px" className="h-14 w-11 shrink-0 rounded-[2px]" />}
               <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-semibold">{toast.title}</p>
-                {toast.body && <p className="truncate text-[12px] text-bg/70">{toast.body}</p>}
+                <p className="flex items-center gap-1.5 text-[14px] font-medium"><Icon name="check-circle" size={16} weight="fill" className="text-gold-soft" />{toast.title}</p>
+                {toast.body && <p className="truncate text-[12px] text-ivory/70">{toast.body}</p>}
               </div>
               {toast.action && (
                 <button
@@ -59,7 +60,7 @@ export function ToastProvider({ children }) {
                     toast.action.onClick()
                     dismiss()
                   }}
-                  className="press shrink-0 rounded-full bg-bg px-4 py-2 text-[13px] font-semibold text-ink"
+                  className="press caps shrink-0 rounded-soft bg-ivory px-3.5 py-2 text-[11px] text-maroon"
                 >
                   {toast.action.label}
                 </button>
