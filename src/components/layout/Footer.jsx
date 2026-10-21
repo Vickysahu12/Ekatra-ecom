@@ -85,21 +85,6 @@ export function Footer() {
           <div className="col-span-2 lg:col-span-1">
             <Wordmark light className="items-start" />
             <p className="mt-5 max-w-[34ch] text-[14px] leading-relaxed text-ivory/70">{site.footer.blurb}</p>
-            <ul className="mt-6 flex gap-2">
-              {site.footer.social.map((s) => (
-                <li key={s.label}>
-                  <a
-                    href={s.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={s.label}
-                    className="press grid size-10 place-items-center rounded-full border border-ivory/25 transition-colors hover:border-gold-soft hover:text-gold-soft"
-                  >
-                    <Icon name={s.icon} size={18} />
-                  </a>
-                </li>
-              ))}
-            </ul>
           </div>
 
           {site.footer.columns.map((col) => (
